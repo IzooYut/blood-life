@@ -23,6 +23,9 @@ class StoreBloodCenterRequest extends FormRequest
     {
         return [
             'name' => 'required|string|unique:blood_centers,name',
+            'contact_person' => 'nullable|string',
+            'email' => 'nullable|email|unique:blood_centers,email',
+            'phone' => 'nullable|string|unique:blood_centers,phone',
             'location' => 'required|string',
             'address' => 'required|string',
             'longitude' => 'nullable|numeric|between:-180,180',

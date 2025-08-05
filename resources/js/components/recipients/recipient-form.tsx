@@ -44,7 +44,7 @@ export default function RecipientForm({ data, onChange, bloodGroups, hospitals }
 
                 <Grid.Col span={6}>
                     <TextInput
-                        label="ID Number"
+                        label="Phone Number"
                         type="text"
                         value={data.id_number}
                         onChange={(e) => onChange('id_number', e.currentTarget.value)}

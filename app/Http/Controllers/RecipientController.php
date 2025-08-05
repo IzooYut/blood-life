@@ -8,6 +8,7 @@ use App\Models\BloodGroup;
 use App\Models\Hospital;
 use App\Models\Recipient;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 
@@ -18,7 +19,10 @@ class RecipientController extends Controller
      */
     public function index(DonorFilter $filter)
     {
-        $recipients = Recipient::query()->select([
+
+        $user = Auth::user();
+
+        $query =  Recipient::query()->select([
             'id',
             'name',
             'date_of_birth',
@@ -26,8 +30,13 @@ class RecipientController extends Controller
             'id_number',
             'blood_group_id',
             'hospital_id'
-        ])->with(['bloodGroup:id,name', 'hospital:id,name'])
-            ->paginate(15)
+        ])->with(['bloodGroup:id,name', 'hospital:id,name']);
+        if ($user->user_type === "hospital_staff") {
+            $hospital =  Hospital::where('user_id', $user->id)->first();
+            $query->where('hospital_id', $hospital->id);
+        }
+
+        $recipients = $query->paginate(15)
             ->through(function ($recipient) {
                 return [
                     'id' => $recipient->id,
@@ -40,7 +49,7 @@ class RecipientController extends Controller
                     'hospital_name' => optional($recipient->hospital)->name,
                 ];
             });
-            
+
 
         return Inertia::render('recipients/Index', [
             'recipients' => $recipients,

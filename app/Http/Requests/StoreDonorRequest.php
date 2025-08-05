@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules;
+
 
 class StoreDonorRequest extends FormRequest
 {
@@ -29,6 +31,7 @@ class StoreDonorRequest extends FormRequest
             'phone' => ['required', 'string', 'regex:/^\+?[0-9\s\-]{7,15}$/'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'blood_group_id' => ['required', 'exists:blood_groups,id'],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ];
     }
 

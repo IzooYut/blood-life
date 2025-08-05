@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\BloodRequestItemController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Middleware\EnsurePasswordUpdated;
+use App\Models\BloodGroup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -19,14 +21,6 @@ Route::get('/', function (Request $request) {
 Route::middleware(['auth', 'verified',EnsurePasswordUpdated::class])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 });
-
-Route::get('requests-page',function()
-{
-    return Inertia::render('blood_requests/FrontIndex');
-}
-);
-
-
 
 require __DIR__.'/settings.php';
 require __DIR__.'/users.php';

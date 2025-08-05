@@ -62,6 +62,8 @@ interface Props extends PageProps {
         blood_center?: string;
         userId?: number;
     };
+    bloodCenters: { id: number; name: string }[];
+    bloodGroups: { id: number; name: string }[];
 }
 
 const statusColorMap: Record<string, string> = {
@@ -71,7 +73,7 @@ const statusColorMap: Record<string, string> = {
 };
 
 export default function Index() {
-    const { appointments, filters,bloodGroups,b } = usePage<Props>().props;
+    const { appointments, filters, bloodCenters, bloodGroups } = usePage<Props>().props;
 
     const [search, setSearch] = useState(filters.search ?? '');
     const [bloodGroup, setBloodGroup] = useState(filters.blood_group ?? '');
@@ -85,6 +87,7 @@ export default function Index() {
     const [isExporting, setIsExporting] = useState<'pdf' | 'excel' | null>(null);
     const [donationDrawerOpened, { open: openDonationDrawer, close: closeDonationDrawer }] = useDisclosure(false);
     const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+    const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
     const [debouncedSearch] = useDebouncedValue(search, 300);
 
     const queryParams = () => ({
@@ -120,7 +123,7 @@ export default function Index() {
         anchor.click();
         anchor.remove();
 
-        setTimeout(() => setIsExporting(null), 2000); 
+        setTimeout(() => setIsExporting(null), 2000);
     };
 
 
@@ -215,6 +218,7 @@ export default function Index() {
                                             mt="xs"
                                             onClick={() => {
                                                 setSelectedUserId(a.user.id);
+                                                setSelectedAppointment(a);
                                                 openDonationDrawer();
                                             }}
                                         >
@@ -267,9 +271,10 @@ export default function Index() {
                         opened={donationDrawerOpened}
                         onClose={closeDonationDrawer}
                         userId={selectedUserId}
-                        bloodCenters={[]} // Replace with your actual list
-                        bloodGroups={[]}  // Replace with your actual list
-                        bloodRequests={[]} // Optional if needed
+                        appointment={selectedAppointment}
+                        bloodCenters={bloodCenters || []}
+                        bloodGroups={bloodGroups || []}
+                        bloodRequests={[]}
                     />
                 )}
 

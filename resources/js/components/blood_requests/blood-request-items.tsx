@@ -120,6 +120,7 @@ export default function BloodRequestItemForm({
                         disabled={isAddingRecipient}
                         placeholder="Select a recipient"
                         clearable
+                        searchable
                     />
                     
                     <Select

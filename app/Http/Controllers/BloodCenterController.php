@@ -6,6 +6,9 @@ use App\Models\BloodCenter;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreBloodCenterRequest;
 use App\Http\Requests\UpdateBloodCenterRequest;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 
@@ -17,7 +20,7 @@ class BloodCenterController extends Controller
     public function index(Request $request)
     {
         $query = BloodCenter::query()
-            ->select(['id', 'name', 'location', 'address', 'created_at'])
+            ->select(['id', 'name','contact_person','email','phone', 'location', 'address', 'created_at'])
             ->withCount(['donations', 'appointments']);
         if ($search = $request->input('search')) {
             $query->where('name', 'like', '%' . $search . '%');
@@ -47,8 +50,19 @@ class BloodCenterController extends Controller
      */
     public function store(StoreBloodCenterRequest $request)
     {
-        BloodCenter::create($request->validated());
-        return Redirect::route('blood_centers.index')->with('success','Blood Center Created Successfully');
+        $validated = $request->validated();
+        DB::transaction(function () use ($validated) {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+                'user_type' => 'center_staff',
+                'password' => Hash::make('password')
+            ]);
+            $validated['user_id'] = $user->id;
+            BloodCenter::create($validated);
+        });
+        return Redirect::route('blood_centers.index')->with('success', 'Blood Center Created Successfully');
         // return response()->json($center, 201);
     }
 

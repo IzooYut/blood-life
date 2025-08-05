@@ -49,6 +49,7 @@ export const MakeAppointmentModal: React.FC<AppointmentModalProps> = ({
       <AppointmentForm
         bloodGroups={bloodGroups}
         bloodCenters={bloodCenters}
+        selectedBloodRequest={appointment}
         onSuccess={onClose}
       />
     </Modal>

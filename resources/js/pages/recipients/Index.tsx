@@ -202,7 +202,7 @@ export default function Index() {
                                     <th className="px-4 py-2">Name</th>
                                     <th className="px-4 py-2">Gender</th>
                                     <th className="px-4 py-2">Date of Birth</th>
-                                    <th className="px-4 py-2">ID Number</th>
+                                    <th className="px-4 py-2">Phone Number</th>
                                     <th className="px-4 py-2">Gender</th>
                                     <th className="px-4 py-2">Blood Group</th>
                                     <th className="px-4 py-2">Hospital</th>

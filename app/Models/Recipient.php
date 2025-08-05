@@ -31,4 +31,13 @@ class Recipient extends Model
     {
         return $this->belongsTo(Hospital::class);
     }
+
+    /**
+     * Get all blood request items for this recipient
+     * One recipient can have many blood request items
+     */
+    public function blood_request_items()
+    {
+        return $this->hasMany(BloodRequestItem::class, 'recipient_id');
+    }
 }

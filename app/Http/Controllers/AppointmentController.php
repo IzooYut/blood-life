@@ -10,6 +10,7 @@ use App\Models\BloodCenter;
 use App\Models\BloodGroup;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 
@@ -77,8 +78,18 @@ class AppointmentController extends Controller
      */
     public function store(StoreAppointmentRequest $request)
     {
-        Appointment::create($request->validated());
+        $user = Auth::user();
+        $user_type = $user->user_type;
+        $validated = $request->validated();
+        $user_id = isset($validated['user_id']) ? $validated['user_id'] : $user->id;
+        $validated['user_id'] = $user_id;
+        $appointment = Appointment::create($validated);
 
+        if ($user_type === 'donor') {
+            return Inertia::render('blood_requests/AppointmentThankyou', [
+                'appointment' => $appointment->load(['blood_center']),
+            ]);
+        }
         return Redirect::route('appointments.index')->with('success', 'Appointment Successfully Created');
     }
 

@@ -12,10 +12,14 @@ class BloodCenter extends Model
     
     protected $fillable = [
         'name',
+        'contact_person',
+        'email',
+        'phone',
         'location',
         'address',
         'longitude',
         'latitude',
+        'user_id',
         'added_by',
         'updated_by',
         'deleted_by'

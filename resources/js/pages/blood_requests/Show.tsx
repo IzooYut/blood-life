@@ -25,6 +25,7 @@ interface BloodRequestItem {
         };
     };
     units_requested: number;
+    unique_code:string;
     urgency: string;
     status: string;
 }
@@ -133,7 +134,7 @@ export default function View({ bloodRequest }: ViewBloodRequestProps) {
                 </Card>
 
                 <Grid>
-                    {/* Request Details */}
+                    
                     <Grid.Col span={8}>
                         <Card>
                             <CardHeader>
@@ -285,6 +286,7 @@ export default function View({ bloodRequest }: ViewBloodRequestProps) {
                         <Table striped highlightOnHover>
                             <Table.Thead>
                                 <Table.Tr>
+                                    <Table.Th>Request Code</Table.Th>
                                     <Table.Th>Blood Group</Table.Th>
                                     <Table.Th>Units</Table.Th>
                                     <Table.Th>Urgency</Table.Th>
@@ -296,6 +298,11 @@ export default function View({ bloodRequest }: ViewBloodRequestProps) {
                             <Table.Tbody>
                                 {bloodRequest.items.map((item) => (
                                     <Table.Tr key={item.id}>
+                                         <Table.Td>
+                                            <Badge variant="light" color="green" size="lg">
+                                                {item?.unique_code ?? '-'}
+                                            </Badge>
+                                        </Table.Td>
                                         <Table.Td>
                                             <Badge variant="light" color="blue" size="lg">
                                                 {item.blood_group.name}

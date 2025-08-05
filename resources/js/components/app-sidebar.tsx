@@ -24,11 +24,14 @@ import {
     UserSquare2
 } from 'lucide-react';
 import AppLogo from './app-logo';
+import { useRoleBasedNavigation, type UserType } from '@/hooks/useRoleBasedNavigation';
+import { usePage } from '@inertiajs/react';
+import { type SharedData } from '@/types';
 
 const mainNavItems: NavItem[] = [
     { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
     { title: 'Donors', href: '/donors', icon: Users },
-    { title: 'Recipients', href: '/recipients/create', icon: UserSquare2},
+    { title: 'Recipients', href: '/recipients', icon: UserSquare2},
     { title: 'Hospitals', href: '/hospitals', icon: Hospital },
     { title: 'Appointments', href: '/appointments', icon: CalendarHeart },
     { title: 'Blood Requests', href: '/blood-requests', icon: Droplet },
@@ -39,6 +42,13 @@ const mainNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { auth } = usePage<SharedData>().props;
+
+    const { filteredNavItems } = useRoleBasedNavigation({
+        userType: auth.user.user_type as UserType,
+        allNavItems: mainNavItems
+    });
+
     return (
         <Sidebar
             collapsible="icon"
@@ -56,7 +66,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent className="flex-1 overflow-y-auto px-1 py-4">
-                <NavMain items={mainNavItems} />
+                <NavMain items={filteredNavItems} />
             </SidebarContent>
 
             <SidebarFooter className="px-4 py-4 border-t border-white/10">

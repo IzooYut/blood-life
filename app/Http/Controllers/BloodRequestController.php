@@ -10,6 +10,7 @@ use App\Models\Recipient;
 use App\Services\BloodRequestService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,6 +22,7 @@ class BloodRequestController extends Controller
     public function index(Request $request): Response
     {
         // Validate and sanitize request parameters
+        $user = Auth::user();
         $validated = $request->validate([
             'search' => 'nullable|string|max:255',
             'status' => 'nullable|string|in:pending,approved,fulfilled,cancelled,partial',
@@ -50,6 +52,12 @@ class BloodRequestController extends Controller
             $query->whereHas('hospital', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%");
             });
+        }
+
+        if($user->user_type==="hospital_staff")
+        {
+            $hospital =  Hospital::where('user_id', $user->id)->first();
+            $query->where('hospital_id', $hospital->id);
         }
 
         if (!empty($validated['status'])) {
@@ -190,7 +198,6 @@ class BloodRequestController extends Controller
      */
     public function show(BloodRequest $bloodRequest)
     {
-         // Load all necessary relationships with specific fields
         $bloodRequest->load([
             'hospital:id,name,address,contact_person,phone,email',
             'items.bloodGroup:id,name',
@@ -200,7 +207,6 @@ class BloodRequestController extends Controller
             }
         ]);
 
-        // Transform the data for consistent API response
         $transformedRequest = [
             'id' => $bloodRequest->id,
             'hospital' => [
@@ -217,6 +223,7 @@ class BloodRequestController extends Controller
             'items' => $bloodRequest->items->map(function ($item) {
                 return [
                     'id' => $item->id,
+                    'unique_code' => $item?->unique_code ?? '-',
                     'blood_group' => [
                         'id' => $item->bloodGroup->id,
                         'name' => $item->bloodGroup->name,

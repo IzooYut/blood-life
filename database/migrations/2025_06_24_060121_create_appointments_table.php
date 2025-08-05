@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('appointments', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id')->index();
-            $table->unsignedBigInteger('blood_center_id')->indexs();
-            $table->unsignedBigInteger('blood_group_id')->nullable()->index();
+            $table->unsignedBigInteger('blood_center_id')->index();
+            $table->unsignedBigInteger('blood_request_item_id')->index();
             $table->timestamp('appointment_date');
             $table->enum('status', ['pending', 'accepted', 'rejected'])->default('pending');
             $table->text('notes')->nullable();

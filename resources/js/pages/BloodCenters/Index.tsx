@@ -40,6 +40,9 @@ import FilterRow from '@/components/filter-row';
 interface BloodCenter {
     id: number;
     name: string;
+    contact_person: string;
+    email: string;
+    phone: string;
     location: string;
     address: string;
     longitude: string;
@@ -193,13 +196,14 @@ export default function Index() {
                             <thead className="bg-gray-50 border-b text-left">
                                 <tr>
                                     <th className="px-4 py-2">Name</th>
+                                    <th className="px-4 py-2">Contact Person</th>
+                                    <th className="px-4 py-2">Email</th>
+                                    <th className="px-4 py-2">Phone</th>
                                     <th className="px-4 py-2">Location</th>
                                     <th className="px-4 py-2">Address</th>
-                                    {/* <th className="px-4 py-2">Longitude</th>
-                                    <th className="px-4 py-2">Latitude</th> */}
                                     <th className="px-4 py-2">No Of Donations</th>
                                     <th className="px-4 py-2">No Of Appointments</th>
-                                    <th className="px-4 py-2">Created At</th>
+                                    {/* <th className="px-4 py-2">Created At</th> */}
                                     <th className="px-4 py-2 text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -212,13 +216,14 @@ export default function Index() {
                                     blood_centers.data.map((blood_center, idx) => (
                                         <tr key={blood_center.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                                             <td className="px-4 py-2">{blood_center.name}</td>
+                                            <td className="px-4 py-2">{blood_center?.contact_person ?? '-'}</td>
+                                            <td className="px-4 py-2">{blood_center?.email ?? '-'}</td>
+                                            <td className="px-4 py-2">{blood_center?.phone ?? '-'}</td>
                                             <td className="px-4 py-2 capitalize">{blood_center.location}</td>
                                             <td className="px-4 py-2">{blood_center.address}</td>
-                                            {/* <td className="px-4 py-2">{blood_center.longitude}</td>
-                                            <td className="px-4 py-2">{blood_center.latitude}</td> */}
                                             <td className="px-4 py-2">{blood_center.donations_count ?? '-'}</td>
                                             <td className="px-4 py-2">{blood_center.appointments_count ?? '-'}</td>
-                                            <td className="px-4 py-2">{formatHumanDate(blood_center?.created_at) ?? '-'}</td>
+                                            {/* <td className="px-4 py-2">{formatHumanDate(blood_center?.created_at) ?? '-'}</td> */}
                                             <td className="px-4 py-2 text-right">
                                                 <Menu withinPortal shadow="sm" position="bottom-end">
                                                     <MenuTarget>

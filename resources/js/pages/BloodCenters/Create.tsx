@@ -16,6 +16,9 @@ import {
 export default function Create() {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
+        contact_person: '',
+        email: '',
+        phone: '',
         location: '',
         address: '',
         longitude: '',
@@ -57,6 +60,36 @@ export default function Create() {
                                     required
                                 />
                             </Grid.Col>
+                             <Grid.Col span={{ base: 12, md: 6 }}>
+                                <TextInput
+                                    label="Contact Person"
+                                    value={data.contact_person}
+                                    onChange={(e) => setData('contact_person', e.currentTarget.value)}
+                                    error={errors.name}
+                                    required
+                                />
+                            </Grid.Col>
+
+                             <Grid.Col span={{ base: 12, md: 6 }}>
+                                <TextInput
+                                    label="Email"
+                                    value={data.email}
+                                    onChange={(e) => setData('email', e.currentTarget.value)}
+                                    error={errors.name}
+                                    required
+                                />
+                            </Grid.Col>
+                             <Grid.Col span={{ base: 12, md: 6 }}>
+                                <TextInput
+                                    label="Phone"
+                                    value={data.phone}
+                                    onChange={(e) => setData('phone', e.currentTarget.value)}
+                                    error={errors.name}
+                                    required
+                                />
+                            </Grid.Col>
+
+
 
                             <Grid.Col span={{ base: 12, md: 6 }}>
                                 <TextInput

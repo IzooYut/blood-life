@@ -22,11 +22,12 @@ class StoreAppointmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => 'required|exists:users,id',
+            'user_id' => 'nullable|exists:users,id',
             'blood_center_id' => 'required|exists:blood_centers,id',
             'appointment_date' => 'required|date|after_or_equal:today',
             'status' => 'nullable|in:pending,accepted,rejected',
             'notes' => 'nullable|string',
+            'blood_request_item_id'=>'nullable|exists:blood_request_items,id'
         ];
     }
 }

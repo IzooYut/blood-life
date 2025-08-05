@@ -14,13 +14,26 @@ class Donation extends Model
         'user_id',
         'blood_center_id',
         'blood_group_id',
+        'appointment_id',
+        'blood_request_item_id',
         'volume_ml',
-        'donation_date',
+        'weight',
+        'donation_date_time',
         'screening_status',
         'notes'
     ];
 
-    public function user()
+     /**
+     * The attributes that should be cast.
+     */
+    protected $casts = [
+        'donation_date_time' => 'datetime',
+        'weight' => 'decimal:2',
+        'volume_ml' => 'integer',
+    ];
+
+
+    public function donor()
     {
         return $this->belongsTo(User::class);
     }
@@ -34,4 +47,16 @@ class Donation extends Model
     {
         return $this->belongsTo(BloodCenter::class);
     }
+
+    public function blood_request_item()
+    {
+        return $this->belongsTo(BloodRequestItem::class);
+    }
+
+    public function appointments()
+    {
+        return $this->belongsTo(Appointment::class);
+    }
+
+    
 }

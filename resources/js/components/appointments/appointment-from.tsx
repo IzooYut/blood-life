@@ -1,3 +1,4 @@
+import React, { useEffect } from 'react';
 import { useForm } from '@inertiajs/react';
 import {
     Textarea,
@@ -11,12 +12,21 @@ import { DateTimePicker } from '@mantine/dates';
 interface AppointmentFormProps {
     bloodGroups: { id: number; name: string }[];
     bloodCenters: { id: number; name: string }[];
+    selectedBloodRequest?: {
+        id: number;
+        recipientName: string;
+        bloodGroup: string;
+        urgency: string;
+        location: string;
+        requiredBy: string;
+    };
     onSuccess?: () => void;
 }
 
 export const AppointmentForm: React.FC<AppointmentFormProps> = ({
     bloodGroups,
     bloodCenters,
+    selectedBloodRequest,
     onSuccess,
 }) => {
     const { data, setData, post, processing, errors } = useForm({
@@ -24,7 +34,20 @@ export const AppointmentForm: React.FC<AppointmentFormProps> = ({
         blood_group_id: '',
         appointment_date: '',
         notes: '',
+        blood_request_item_id: selectedBloodRequest?.id || '',
     });
+
+    useEffect(() => {
+        if (selectedBloodRequest && bloodGroups.length > 0) {
+            const matchingBloodGroup = bloodGroups.find(
+                (bg) => bg.name === selectedBloodRequest.bloodGroup
+            );
+            
+            if (matchingBloodGroup) {
+                setData('blood_group_id', String(matchingBloodGroup.id));
+            }
+        }
+    }, [selectedBloodRequest, bloodGroups, setData]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -66,6 +89,7 @@ export const AppointmentForm: React.FC<AppointmentFormProps> = ({
                         onChange={(value) => setData('blood_group_id', value || '')}
                         error={errors.blood_group_id}
                         required
+                        disabled={!!selectedBloodRequest} 
                     />
                 </Grid.Col>
 
@@ -73,7 +97,6 @@ export const AppointmentForm: React.FC<AppointmentFormProps> = ({
                     <DateTimePicker
                         label="Appointment Date & Time"
                         value={data.appointment_date as any}
-
                         onChange={(date) => {
                             try {
                                 setData('appointment_date', date ? (date as any).toISOString().split('T')[0] : '');

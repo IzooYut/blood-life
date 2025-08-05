@@ -13,7 +13,7 @@ class Appointment extends Model
     protected $fillable = [
         'user_id',
         'blood_center_id',
-        'blood_group_id',
+        'blood_request_item_id',
         'appointment_date',
         'status',
         'notes',
@@ -35,5 +35,10 @@ class Appointment extends Model
     public function blood_center()
     {
         return $this->belongsTo(BloodCenter::class);
+    }
+
+    public function request()
+    {
+        return $this->belongsTo('blood_request_item_id');
     }
 }
