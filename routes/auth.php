@@ -55,12 +55,12 @@ Route::middleware('guest')->group(function () {
 
 Route::post('create-donor',[DonorController::class,'store'])->name('create-donor');
 
-Route::get('home', function () {
-   $bloodCenters = BloodCenter::paginate(9);
-    return Inertia::render('Home',[
-        'blood_centers'=>$bloodCenters
-    ]);
-});
+// Route::get('home', function () {
+//    $bloodCenters = BloodCenter::paginate(9);
+//     return Inertia::render('Home',[
+//         'blood_centers'=>$bloodCenters
+//     ]);
+// });
 
 Route::middleware('auth')->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)

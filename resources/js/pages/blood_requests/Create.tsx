@@ -10,7 +10,7 @@ import RecipientForm, { RecipientFormData } from '@/components/recipients/recipi
 
 interface CreateBloodRequestProps {
     hospitals: Array<{ id: string; name: string }>;
-    recipients: Array<{ id: string; name: string; blood_group_id:string; }>;
+    recipients: Array<{ id: string; name: string; blood_group_id: string; }>;
     bloodGroups: Array<{ id: string; name: string }>;
 }
 
@@ -28,7 +28,7 @@ type BloodRequestItem = {
 
 
 
-export default function Create({  bloodGroups,hospitals, recipients }: CreateBloodRequestProps) {
+export default function Create({ bloodGroups, hospitals, recipients }: CreateBloodRequestProps) {
     const form = useForm({
         hospital_id: '',
         request_date: new Date().toISOString().substring(0, 10),
@@ -79,7 +79,7 @@ export default function Create({  bloodGroups,hospitals, recipients }: CreateBlo
 
 
 
-    
+
 
     const updateItem = <K extends keyof BloodRequestItem>(
         index: number,
@@ -141,14 +141,14 @@ export default function Create({  bloodGroups,hospitals, recipients }: CreateBlo
                 <CardContent className="space-y-4">
                     <Grid>
                         <Grid.Col span={6}>
-                             <Select
+                            <Select
                                 label="Hospital"
                                 value={form.data.hospital_id}
                                 onChange={(value) => form.setData('hospital_id', value || '')}
                                 data={hospitals.map((h: any) => ({ value: h.id?.toString(), label: h.name }))}
                                 required
                             />
-                        </Grid.Col> 
+                        </Grid.Col>
 
 
 
@@ -195,6 +195,7 @@ export default function Create({  bloodGroups,hospitals, recipients }: CreateBlo
                                     hospitals={hospitals}
                                     updateItem={updateItem}
                                     removeItem={removeItem}
+                                    hospital_id={form?.data?.hospital_id}
                                 />
                             </div>
                         ))}

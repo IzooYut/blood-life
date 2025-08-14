@@ -124,9 +124,22 @@ export default function Index() {
         });
     };
 
-    const handleExport = (type: 'pdf' | 'excel') => {
-        setIsExporting(type);
-        const url = route(`blood_centers.export.${type}`, queryParams());
+      const handleExport = (format: 'pdf' | 'excel') => {
+        setIsExporting(format);
+
+        const rawParams: Record<string, string | undefined> = {
+            start_date: undefined,
+            end_date: undefined,
+            // search: debouncedSearch || undefined,
+        };
+
+        const params: Record<string, string> = Object.fromEntries(
+            Object.entries(rawParams).filter(([_, v]) => v !== undefined) as [string, string][]
+        );
+
+        const queryString = new URLSearchParams(params).toString();
+
+        const url = route('reports.export', { type: 'blood_centers', format: format }) + '?' + queryString;
 
         const anchor = document.createElement('a');
         anchor.href = url;
@@ -135,8 +148,9 @@ export default function Index() {
         anchor.click();
         anchor.remove();
 
-        setTimeout(() => setIsExporting(null), 2000); // reset after 2s
+        setTimeout(() => setIsExporting(null), 2000);
     };
+
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

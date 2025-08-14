@@ -25,7 +25,7 @@ interface BloodRequestItem {
         };
     };
     units_requested: number;
-    unique_code:string;
+    unique_code: string;
     urgency: string;
     status: string;
 }
@@ -94,7 +94,10 @@ export default function View({ bloodRequest }: ViewBloodRequestProps) {
         },
     ];
 
-    const totalUnits = bloodRequest.items.reduce((sum, item) => sum + item.units_requested, 0);
+    const totalUnits = bloodRequest.items.reduce((sum, item) => {
+        const units = Number(item?.units_requested ?? 0);
+        return sum + units;
+    }, 0);
     const bloodGroups = [...new Set(bloodRequest.items.map(item => item.blood_group.name))];
     const hasUrgentItems = bloodRequest.items.some(item => item.urgency === 'urgent');
 
@@ -134,7 +137,7 @@ export default function View({ bloodRequest }: ViewBloodRequestProps) {
                 </Card>
 
                 <Grid>
-                    
+
                     <Grid.Col span={8}>
                         <Card>
                             <CardHeader>
@@ -235,7 +238,7 @@ export default function View({ bloodRequest }: ViewBloodRequestProps) {
                                             {bloodRequest.hospital.name}
                                         </Text>
                                     </div>
-                                    
+
                                     {bloodRequest.hospital.address && (
                                         <Group gap="xs" align="flex-start">
                                             <MapPinIcon size={16} className="mt-1" />
@@ -244,7 +247,7 @@ export default function View({ bloodRequest }: ViewBloodRequestProps) {
                                             </Text>
                                         </Group>
                                     )}
-                                    
+
                                     {bloodRequest.hospital.contact_person && (
                                         <Group gap="xs">
                                             <User2Icon size={16} />
@@ -253,7 +256,7 @@ export default function View({ bloodRequest }: ViewBloodRequestProps) {
                                             </Text>
                                         </Group>
                                     )}
-                                    
+
                                     {bloodRequest.hospital.phone && (
                                         <Group gap="xs">
                                             <PhoneIcon size={16} />
@@ -262,7 +265,7 @@ export default function View({ bloodRequest }: ViewBloodRequestProps) {
                                             </Text>
                                         </Group>
                                     )}
-                                    
+
                                     {bloodRequest.hospital.email && (
                                         <Group gap="xs">
                                             <MailIcon size={16} />
@@ -298,7 +301,7 @@ export default function View({ bloodRequest }: ViewBloodRequestProps) {
                             <Table.Tbody>
                                 {bloodRequest.items.map((item) => (
                                     <Table.Tr key={item.id}>
-                                         <Table.Td>
+                                        <Table.Td>
                                             <Badge variant="light" color="green" size="lg">
                                                 {item?.unique_code ?? '-'}
                                             </Badge>

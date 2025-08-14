@@ -76,7 +76,7 @@ public function withValidator($validator)
                 }
             }
             
-            if (empty($item['recipient_id']) && (!isset($item['add_new_recipient']) || $item['add_new_recipient'] !== true)) {
+            if (!$item['is_general'] && empty($item['recipient_id']) && (!isset($item['add_new_recipient']) || $item['add_new_recipient'] !== true)) {
                 $v->errors()->add("items.$index.recipient_id", 'Either select an existing recipient or add a new recipient.');
             }
         }

@@ -18,15 +18,17 @@ import {
   Image,
 } from '@mantine/core';
 import { useState, useEffect, useTransition } from 'react';
-import { useDisclosure } from '@mantine/hooks';
+import { useDebouncedValue, useDisclosure } from '@mantine/hooks';
 import {
   EditIcon,
   TrashIcon,
   EyeIcon,
   MoreVertical,
+  DownloadIcon,
 } from 'lucide-react';
 import { PageProps } from '@inertiajs/core';
 import { type BreadcrumbItem } from '@/types';
+
 
 interface Hospital {
   id: number;
@@ -53,9 +55,14 @@ export default function Index() {
   const breadcrumbs: BreadcrumbItem[] = [{ title: 'Hospitals', href: '/hospitals' }];
   const { hospitals } = usePage<Props>().props;
 
+
   const [hospitalToDelete, setHospitalToDelete] = useState<Hospital | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
   const [isPending, startTransition] = useTransition();
+  const [isExporting, setIsExporting] = useState<'pdf' | 'excel' | null>(null);
+  // const [debouncedSearch] = useDebouncedValue(search, 300);
+
+
 
   const confirmDelete = (hospital: Hospital) => {
     setHospitalToDelete(hospital);
@@ -78,6 +85,34 @@ export default function Index() {
     });
   };
 
+  const handleExport = (format: 'pdf' | 'excel') => {
+    setIsExporting(format);
+
+    const rawParams: Record<string, string | undefined> = {
+      start_date: undefined,
+      end_date: undefined,
+      // search: debouncedSearch || undefined,
+    };
+
+    const params: Record<string, string> = Object.fromEntries(
+      Object.entries(rawParams).filter(([_, v]) => v !== undefined) as [string, string][]
+    );
+
+    const queryString = new URLSearchParams(params).toString();
+
+    const url = route('reports.export', { type: 'hospitals', format: format }) + '?' + queryString;
+
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.setAttribute('download', '');
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+
+    setTimeout(() => setIsExporting(null), 2000);
+  };
+
+
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Hospitals List" />
@@ -94,6 +129,27 @@ export default function Index() {
             >
               Add Hospital
             </Link>
+            <Button
+              variant="outline"
+              color="gray"
+              leftSection={isExporting === 'excel' ? <Loader size={14} /> : <DownloadIcon size={16} />}
+              radius="md"
+              loading={isExporting === 'excel'}
+              onClick={() => handleExport('excel')}
+            >
+              Export Excel
+            </Button>
+
+            <Button
+              variant="filled"
+              color="orange"
+              leftSection={isExporting === 'pdf' ? <Loader size={14} color="white" /> : <DownloadIcon size={16} />}
+              radius="md"
+              loading={isExporting === 'pdf'}
+              onClick={() => handleExport('pdf')}
+            >
+              Export PDF
+            </Button>
           </Group>
         </Group>
 

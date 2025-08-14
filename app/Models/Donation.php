@@ -35,7 +35,7 @@ class Donation extends Model
 
     public function donor()
     {
-        return $this->belongsTo(User::class);
+       return $this->belongsTo(User::class, 'user_id');
     }
 
     public function bloodGroup()

@@ -18,6 +18,8 @@ class BloodRequestItem extends Model
         'unique_code',
         'recipient_id',
         'units_requested',
+        'units_fulfilled',
+        'is_general',
         'urgency',
         'status',
         'added_by',

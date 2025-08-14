@@ -52,7 +52,7 @@ class StoreDonationRequest extends FormRequest
             'weight' => [
                 'nullable',
                 'numeric',
-                'min:30',
+                'min:50',
                 'max:300' // Reasonable weight range in kg
             ],
             'donation_date_time' => [
@@ -87,7 +87,7 @@ class StoreDonationRequest extends FormRequest
             'volume_ml.required' => 'Please specify the volume of blood donated.',
             'volume_ml.min' => 'Volume must be at least 100ml.',
             'volume_ml.max' => 'Volume cannot exceed 1000ml.',
-            'weight.min' => 'Weight must be at least 30kg.',
+            'weight.min' => 'Weight must be at least 50kg.',
             'weight.max' => 'Weight cannot exceed 300kg.',
             'donation_date_time.required' => 'Please specify the donation date and time.',
             'donation_date_time.before_or_equal' => 'Donation date and time cannot be in the future.',
@@ -135,26 +135,26 @@ class StoreDonationRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             // Custom validation: Check if user has donated recently (optional business rule)
-            if ($this->user_id) {
-                $recentDonation = \App\Models\Donation::where('user_id', $this->user_id)
-                    ->where('donation_date_time', '>=', now()->subDays(56)) // 8 weeks minimum gap
-                    ->first();
+            // if ($this->user_id) {
+            //     $recentDonation = \App\Models\Donation::where('user_id', $this->user_id)
+            //         ->where('donation_date_time', '>=', now()->subDays(56)) // 8 weeks minimum gap
+            //         ->first();
 
-                if ($recentDonation) {
-                    // Ensure we have a Carbon instance
-                    $donationDate = $recentDonation->donation_date_time instanceof \Carbon\Carbon 
-                        ? $recentDonation->donation_date_time 
-                        : \Carbon\Carbon::parse($recentDonation->donation_date_time);
+            //     if ($recentDonation) {
+            //         // Ensure we have a Carbon instance
+            //         $donationDate = $recentDonation->donation_date_time instanceof \Carbon\Carbon 
+            //             ? $recentDonation->donation_date_time 
+            //             : \Carbon\Carbon::parse($recentDonation->donation_date_time);
                     
-                    $nextAllowedDate = $donationDate->addDays(56);
+            //         $nextAllowedDate = $donationDate->addDays(56);
                     
-                    $validator->errors()->add(
-                        'user_id', 
-                        'This donor has donated within the last 8 weeks. Next donation allowed after ' . 
-                        $nextAllowedDate->format('M d, Y')
-                    );
-                }
-            }
+            //         $validator->errors()->add(
+            //             'user_id', 
+            //             'This donor has donated within the last 8 weeks. Next donation allowed after ' . 
+            //             $nextAllowedDate->format('M d, Y')
+            //         );
+            //     }
+            // }
 
             // Custom validation: Check if appointment is already used for another donation
             if ($this->appointment_id) {

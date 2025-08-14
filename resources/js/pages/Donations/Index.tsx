@@ -1,38 +1,38 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button, Badge, Table, ActionIcon, Group, Text, TextInput, Select, Pagination, Stack, Grid } from '@mantine/core';
+import { Button, Badge, Table, ActionIcon, Group, Text, TextInput, Select, Pagination, Stack, Grid, Title } from '@mantine/core';
 import { BreadcrumbItem } from '@/types';
 import { useState, useEffect } from 'react';
 import { useDebouncedValue } from '@mantine/hooks';
-import { BuildingIcon, CalendarIcon, DropletIcon, EyeIcon, FilterIcon, LucideGift, PlusIcon, PlusSquareIcon, SearchIcon, UserIcon } from 'lucide-react';
+import { BuildingIcon, CalendarIcon, DownloadIcon, DropletIcon, Edit2Icon, EyeIcon, FilterIcon, Loader, LucideGift, PlusIcon, PlusSquareIcon, SearchIcon, Trash2Icon, UserIcon } from 'lucide-react';
 
 export interface Donation {
-  id: number
-  donor: {
     id: number
-    name: string
-    email?: string
-  } | null
-  blood_center: {
-    id: number
-    name: string
-    location?: string
-  } | null
-  
-  blood_request_item: {
-    id: number,
-    unique_code: string,
-    recipient: {
-        id: number,
+    donor: {
+        id: number
         name: string
+        email?: string
     } | null
-  } | null
-  appointment_id: number | null
-  volume_ml: number
-  donation_date_time: string
-  screening_status: 'not_screened' | 'passed' | 'failed'
-  notes: string | null
+    blood_center: {
+        id: number
+        name: string
+        location?: string
+    } | null
+
+    blood_request_item: {
+        id: number,
+        unique_code: string,
+        recipient: {
+            id: number,
+            name: string
+        } | null
+    } | null
+    appointment_id: number | null
+    volume_ml: number
+    donation_date_time: string
+    screening_status: 'not_screened' | 'passed' | 'failed'
+    notes: string | null
 }
 
 interface IndexDonationProps {
@@ -84,13 +84,13 @@ export default function Index({ donations, filters, filterOptions }: IndexDonati
     const [bloodCenterFilter, setBloodCenterFilter] = useState(filters.blood_center_id || '');
     const [sortBy, setSortBy] = useState(filters.sort_by || 'donation_date_time');
     const [sortDirection, setSortDirection] = useState(filters.sort_direction || 'desc');
-    
+    const [isExporting, setIsExporting] = useState<'pdf' | 'excel' | null>(null);
     const [debouncedSearch] = useDebouncedValue(searchValue, 300);
 
     // Handle search and filter changes
     useEffect(() => {
         const params = new URLSearchParams();
-        
+
         if (debouncedSearch) params.set('search', debouncedSearch);
         if (screeningStatusFilter) params.set('screening_status', screeningStatusFilter);
         if (recipientFilter) params.set('recipient_id', recipientFilter);
@@ -98,7 +98,7 @@ export default function Index({ donations, filters, filterOptions }: IndexDonati
         if (bloodCenterFilter) params.set('blood_center_id', bloodCenterFilter);
         if (sortBy) params.set('sort_by', sortBy);
         if (sortDirection) params.set('sort_direction', sortDirection);
-        
+
         router.get('/donations', Object.fromEntries(params), {
             preserveState: true,
             preserveScroll: true,
@@ -124,6 +124,35 @@ export default function Index({ donations, filters, filterOptions }: IndexDonati
         }
     };
 
+    const handleExport = (format: 'pdf' | 'excel') => {
+        setIsExporting(format);
+
+        const rawParams: Record<string, string | undefined> = {
+            start_date: undefined,
+            end_date: undefined,
+            // search: debouncedSearch || undefined,
+        };
+
+        const params: Record<string, string> = Object.fromEntries(
+            Object.entries(rawParams).filter(([_, v]) => v !== undefined) as [string, string][]
+        );
+
+        const queryString = new URLSearchParams(params).toString();
+
+        const url = route('reports.export', { type: 'donations', format: format }) + '?' + queryString;
+
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.setAttribute('download', '');
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+
+        setTimeout(() => setIsExporting(null), 2000);
+    };
+
+
+
     const getSortIcon = (field: string) => {
         if (sortBy !== field) return '';
         return sortDirection === 'asc' ? ' ↑' : ' ↓';
@@ -142,14 +171,41 @@ export default function Index({ donations, filters, filterOptions }: IndexDonati
 
             <Card>
                 <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle>Blood Donations</CardTitle>
-                        <Link href="/donations/create">
-                            <Button leftSection={<PlusSquareIcon size={16} />}>
+                    <Group justify="space-between" className="flex-wrap pb-2 gap-4">
+                        <div>
+                            <Title order={2} className="text-[1.5rem] sm:text-[1.75rem] font-bold text-[#0B0146]">Donations List</Title>
+                            <Text size="sm" className="text-gray-500">Manage and view all Donations</Text>
+                        </div>
+                        <Group gap="xs" className="flex-wrap justify-end">
+                            <Link
+                                href={route('donations.create')}
+                                className="px-4 py-2 bg-[#e25b2a] text-white rounded hover:bg-[#0b0146]"
+                            >
                                 New Donation
+                            </Link>
+                            <Button
+                                variant="outline"
+                                color="gray"
+                                leftSection={isExporting === 'excel' ? <Loader size={14} /> : <DownloadIcon size={16} />}
+                                radius="md"
+                                loading={isExporting === 'excel'}
+                                onClick={() => handleExport('excel')}
+                            >
+                                Export Excel
                             </Button>
-                        </Link>
-                    </div>
+
+                            <Button
+                                variant="filled"
+                                color="orange"
+                                leftSection={isExporting === 'pdf' ? <Loader size={14} color="white" /> : <DownloadIcon size={16} />}
+                                radius="md"
+                                loading={isExporting === 'pdf'}
+                                onClick={() => handleExport('pdf')}
+                            >
+                                Export PDF
+                            </Button>
+                        </Group>
+                    </Group>
                 </CardHeader>
                 <CardContent>
                     <Card>
@@ -164,7 +220,7 @@ export default function Index({ donations, filters, filterOptions }: IndexDonati
                                         Clear All
                                     </Button>
                                 </Group>
-                                
+
                                 <Grid>
                                     <Grid.Col span={2}>
                                         <TextInput
@@ -218,32 +274,32 @@ export default function Index({ donations, filters, filterOptions }: IndexDonati
                     <Table striped highlightOnHover>
                         <Table.Thead>
                             <Table.Tr>
-                                <Table.Th 
+                                <Table.Th
                                     style={{ cursor: 'pointer' }}
                                     onClick={() => handleSort('donor_name')}
                                 >
                                     Donor{getSortIcon('donor_name')}
                                 </Table.Th>
-                                <Table.Th 
+                                <Table.Th
                                     style={{ cursor: 'pointer' }}
                                     onClick={() => handleSort('donation_date_time')}
                                 >
                                     Donation Date{getSortIcon('donation_date_time')}
                                 </Table.Th>
-                                <Table.Th 
+                                <Table.Th
                                     style={{ cursor: 'pointer' }}
                                     onClick={() => handleSort('blood_center_name')}
                                 >
                                     Blood Center{getSortIcon('blood_center_name')}
                                 </Table.Th>
                                 <Table.Th>Recipient</Table.Th>
-                                <Table.Th 
+                                <Table.Th
                                     style={{ cursor: 'pointer' }}
                                     onClick={() => handleSort('volume_ml')}
                                 >
                                     Volume{getSortIcon('volume_ml')}
                                 </Table.Th>
-                                <Table.Th 
+                                <Table.Th
                                     style={{ cursor: 'pointer' }}
                                     onClick={() => handleSort('screening_status')}
                                 >
@@ -341,6 +397,16 @@ export default function Index({ donations, filters, filterOptions }: IndexDonati
                                                     <EyeIcon size={16} />
                                                 </ActionIcon>
                                             </Link>
+                                             <Link href={`/donations/${donation.id}/edit`}>
+                                                <ActionIcon variant="light" size="sm">
+                                                    <Edit2Icon size={16} />
+                                                </ActionIcon>
+                                            </Link>
+                                             <Link href={`/donations/${donation.id}`}>
+                                                <ActionIcon variant="light" size="sm">
+                                                    <Trash2Icon size={16} />
+                                                </ActionIcon>
+                                            </Link>
                                         </Group>
                                     </Table.Td>
                                 </Table.Tr>
@@ -375,7 +441,7 @@ export default function Index({ donations, filters, filterOptions }: IndexDonati
                                 No donations found
                             </Text>
                             <Text size="sm" c="dimmed" mt="xs">
-                                {searchValue || screeningStatusFilter || recipientFilter || donorFilter || bloodCenterFilter 
+                                {searchValue || screeningStatusFilter || recipientFilter || donorFilter || bloodCenterFilter
                                     ? 'Try adjusting your filters or search criteria'
                                     : 'Create your first donation record to get started'
                                 }

@@ -42,6 +42,13 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('requests-page');
         }
 
+        if ($user->user_type === 'hospital_staff') {
+            return redirect()->route('h-dashboard');
+        }
+        if ($user->user_type === 'center_staff') {
+            return redirect()->route('bc-dashboard');
+        }
+
         return redirect('/');
 
 

@@ -1,5 +1,6 @@
-// First, create this as a separate component file: BloodCentersSection.tsx
+// BloodCentersSection.tsx
 import React, { useState } from 'react';
+import { router } from '@inertiajs/react';
 import { 
     MapPin, 
     Phone, 
@@ -10,7 +11,15 @@ import {
     ChevronRight,
     Building2,
     Star,
-    ArrowRight
+    ArrowRight,
+    Users,
+    CheckCircle,
+    XCircle,
+    Heart,
+    Scale,
+    Calendar,
+    Activity,
+    AlertCircle
 } from 'lucide-react';
 
 interface BloodCenter {
@@ -39,9 +48,77 @@ interface BloodCentersProps {
     };
 }
 
+interface EligibilityCriteria {
+    id: number;
+    title: string;
+    description: string;
+    icon: React.ReactNode;
+    type: 'eligible' | 'ineligible';
+}
+
 const BloodCentersSection: React.FC<BloodCentersProps> = ({ bloodCenters }) => {
     const [currentPage, setCurrentPage] = useState(bloodCenters.current_page);
     const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+    const [activeEligibilityTab, setActiveEligibilityTab] = useState<'eligible' | 'ineligible'>('eligible');
+
+    const eligibilityCriteria: EligibilityCriteria[] = [
+        {
+            id: 1,
+            title: "Age 18-65 years",
+            description: "You must be between 18 and 65 years old to donate blood safely.",
+            icon: <Calendar className="w-5 h-5" />,
+            type: 'eligible'
+        },
+        {
+            id: 2,
+            title: "Weight 50kg or more",
+            description: "Minimum weight requirement ensures your body can safely handle blood donation.",
+            icon: <Scale className="w-5 h-5" />,
+            type: 'eligible'
+        },
+        {
+            id: 3,
+            title: "Good general health",
+            description: "You should feel well and be in good health on the day of donation.",
+            icon: <Heart className="w-5 h-5" />,
+            type: 'eligible'
+        },
+        {
+            id: 4,
+            title: "Normal blood pressure",
+            description: "Your blood pressure should be within normal range (90/50 - 180/100 mmHg).",
+            icon: <Activity className="w-5 h-5" />,
+            type: 'eligible'
+        },
+        {
+            id: 5,
+            title: "Recent illness or fever",
+            description: "Wait at least 2 weeks after recovering from any illness or fever.",
+            icon: <AlertCircle className="w-5 h-5" />,
+            type: 'ineligible'
+        },
+        {
+            id: 6,
+            title: "Pregnancy or breastfeeding",
+            description: "Pregnant or breastfeeding women should not donate blood.",
+            icon: <Users className="w-5 h-5" />,
+            type: 'ineligible'
+        },
+        {
+            id: 7,
+            title: "Recent medication",
+            description: "Certain medications may require a waiting period before donation.",
+            icon: <AlertCircle className="w-5 h-5" />,
+            type: 'ineligible'
+        },
+        {
+            id: 8,
+            title: "Recent travel to malaria areas",
+            description: "Wait 3-12 months after traveling to malaria-endemic areas.",
+            icon: <MapPin className="w-5 h-5" />,
+            type: 'ineligible'
+        }
+    ];
 
     const handlePageChange = (page: number) => {
         if (page >= 1 && page <= bloodCenters.last_page) {
@@ -58,7 +135,12 @@ const BloodCentersSection: React.FC<BloodCentersProps> = ({ bloodCenters }) => {
     };
 
     const handleDonate = (center: BloodCenter) => {
-        console.log(`Donate at ${center.name}`);
+        router.visit('/requests-page', {
+            data: {
+                center_id: center.id,
+                center_name: center.name
+            }
+        });
     };
 
     const getPaginationNumbers = () => {
@@ -72,6 +154,10 @@ const BloodCentersSection: React.FC<BloodCentersProps> = ({ bloodCenters }) => {
         }
         return pages;
     };
+
+    const filteredEligibilityCriteria = eligibilityCriteria.filter(
+        criteria => criteria.type === activeEligibilityTab
+    );
 
     return (
         <div className="relative bg-gradient-to-br from-slate-50 via-white to-red-50/30 py-16 sm:py-20 lg:py-28 overflow-hidden">
@@ -87,14 +173,9 @@ const BloodCentersSection: React.FC<BloodCentersProps> = ({ bloodCenters }) => {
                         <Building2 className="w-4 h-4 mr-2" />
                         Available Blood Centers
                     </div>
-                    {/* <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent mb-6 leading-tight">
-                        Blood Centers
-                        <span className="block text-red-600">Near You</span>
-                    </h2> */}
-                    {/* <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                        Discover certified blood donation centers with state-of-the-art facilities and experienced medical professionals.
-                    </p> */}
                 </div>
+
+                
 
                 {bloodCenters.data.length === 0 ? (
                     <div className="text-center py-20">

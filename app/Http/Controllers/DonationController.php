@@ -6,9 +6,12 @@ use App\Http\Requests\StoreDonationRequest;
 use App\Http\Requests\UpdateDonationRequest;
 use App\Models\Appointment;
 use App\Models\BloodCenter;
+use App\Models\BloodGroup;
+use App\Models\BloodRequestItem;
 use App\Models\Donation;
 use App\Models\Recipient;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -41,10 +44,10 @@ class DonationController extends Controller
         // Build the optimized query with eager loading to prevent N+1 queries
         $query = Donation::query()
             ->with([
-                'donor:id,name,email', // Only load needed fields
+                'donor:id,name,email',
                 'bloodCenter:id,name,location',
                 'blood_request_item:id,unique_code,recipient_id',
-                'blood_request_item.recipient:id,name,phone_no' // Nested eager loading
+                'blood_request_item.recipient:id,name,phone_no'
             ])
             ->select([
                 'id',
@@ -117,18 +120,9 @@ class DonationController extends Controller
                 break;
         }
 
-        // Add index for common queries if not exists
-        // You should run this migration: 
-        // Schema::table('donations', function (Blueprint $table) {
-        //     $table->index(['donation_date_time', 'screening_status']);
-        //     $table->index(['user_id', 'donation_date_time']);
-        //     $table->index(['blood_center_id', 'donation_date_time']);
-        // });
 
-        // Execute paginated query
         $donations = $query->paginate($perPage)->withQueryString();
 
-        // Get filter options for dropdowns (cached for performance)
         $filterOptions = [
             'bloodCenters' => Cache::remember('blood_centers_options', 3600, function () {
                 return BloodCenter::select('id', 'name')
@@ -157,6 +151,7 @@ class DonationController extends Controller
             ]
         ];
 
+
         return Inertia::render('Donations/Index', [
             'donations' => $donations,
             'filters' => $filters,
@@ -169,7 +164,123 @@ class DonationController extends Controller
      */
     public function create()
     {
-        //
+        // Get all registered donors with their blood groups
+        $donors = User::with('bloodGroup')
+            ->where('user_type', 'donor') // Assuming you have a role field
+            ->whereNotNull('first_name')
+            ->whereNotNull('last_name')
+            ->whereHas('bloodGroup') // Only include users with blood groups
+            ->orderBy('first_name')
+            ->get()
+            ->map(function ($user) {
+                // Additional null checks within the mapping
+                if (!$user->bloodGroup) {
+                    return null;
+                }
+
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name ?? ($user->first_name . ' ' . $user->last_name),
+                    'first_name' => $user->first_name ?? '',
+                    'last_name' => $user->last_name ?? '',
+                    'blood_group' => [
+                        'id' => $user->bloodGroup->id,
+                        'name' => $user->bloodGroup->name ?? 'Unknown',
+                    ]
+                ];
+            })
+            ->filter() // Remove null values from the collection
+            ->values(); // Re-index the array
+
+        // Get all blood centers
+        $bloodCenters = BloodCenter::select('id', 'name')
+            ->whereNotNull('name')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($center) {
+                return [
+                    'id' => $center->id,
+                    'name' => $center->name ?? 'Unnamed Center'
+                ];
+            });
+
+        // Get all blood groups
+        $bloodGroups = BloodGroup::select('id', 'name')
+            ->whereNotNull('name')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($group) {
+                return [
+                    'id' => $group->id,
+                    'name' => $group->name ?? 'Unknown Type'
+                ];
+            });
+
+        // Get recent appointments (optional, for linking)
+        // $appointments = Appointment::with(['user', 'blood_center'])
+        //     ->where('appointment_date', '>=', now()->subDays(30))
+        //     ->where('status', 'accepted')
+        //     ->whereHas('user') // Only include appointments with valid users
+        //     ->whereHas('blood_center') // Only include appointments with valid blood centers
+        //     ->orderBy('appointment_date', 'desc')
+        //     ->get()
+        //     ->map(function ($appointment) {
+        //         // Null checks for related models
+        //         if (!$appointment->user || !$appointment->blood_center) {
+        //             return null;
+        //         }
+
+        //         return [
+        //             'id' => $appointment->id,
+        //             'user' => [
+        //                 'first_name' => $appointment->user->first_name ?? '',
+        //                 'last_name' => $appointment->user->last_name ?? '',
+        //             ],
+        //             'blood_center' => [
+        //                 'name' => $appointment->blood_center->name ?? 'Unknown Center',
+        //             ],
+        //             'appointment_date' => $appointment->appointment_date
+        //                 ? Carbon::parse($appointment->appointment_date)->toISOString()
+        //                 : now()->toISOString(),
+        //             'status' => $appointment->status ?? 'unknown',
+        //         ];
+        //     })
+        //     ->filter() // Remove null values
+        //     ->values(); // Re-index
+
+        // Get active blood requests (optional, for linking)
+        $bloodRequests = BloodRequestItem::with(['bloodGroup', 'recipient.bloodGroup'])
+            // ->whereHas('bloodGroup', function ($query) {
+            //     $query->whereNotNull('name');
+            // })
+            ->where('status', 'pending')
+            ->whereNotNull('units_requested')
+            ->latest()
+            ->get()
+            ->map(function ($item) {
+                // Comprehensive null checks
+                if (!$item->recipient || !$item->bloodGroup) {
+                    return null;
+                }
+
+                $title = $item?->unique_code . ' ' . $item?->recipient?->name ?? 'Untitled Request';
+                $bloodGroupName = $item?->recipient?->bloodGroup->name ?? 'Unknown Type';
+                $quantity = $item->units_requested ?? 0;
+
+                return [
+                    'id' => $item->id,
+                    'label' => "{$title} - {$bloodGroupName} ({$quantity} units)",
+                ];
+            })
+            ->filter() // Remove null values
+            ->values(); // Re-index
+
+        return Inertia::render('Donations/Create', [
+            'donors' => $donors,
+            'bloodCenters' => $bloodCenters,
+            'bloodGroups' => $bloodGroups,
+            'bloodRequests' => $bloodRequests,
+        ]);
     }
 
     /**
@@ -178,20 +289,35 @@ class DonationController extends Controller
     public function store(StoreDonationRequest $request)
     {
 
+        $validated = $request->validated();
 
         try {
-            Donation::create($request->validated());
+            Donation::create($validated);
 
-            if ($request->appointment_id) {
-                $appointment = Appointment::find($request->appointment_id);
+            if ($validated['appointment_id']) {
+                $appointment = Appointment::find($$validated['appointment_id']);
                 if ($appointment) {
                     $appointment->update(['status' => 'accepted']);
+                }
+            }
+            // Update blood request item if linked and screening passed
+            if ($validated['blood_request_item_id'] && $validated['screening_status'] === 'passed') {
+                $bloodRequestItem = BloodRequestItem::find($validated['blood_request_item_id']);
+                if ($bloodRequestItem) {
+                    // Add the donated volume to the fulfilled quantity
+                    $volumeInUnits = $validated['volume_ml'];
+                    $bloodRequestItem->increment('units_fulfilled', $volumeInUnits);
+
+
+                    // Check if request is fully fulfilled
+                    if ($bloodRequestItem->units_requested >= $bloodRequestItem->units_fulfilled) {
+                        $bloodRequestItem->update(['status' => 'fulfilled']);
+                    }
                 }
             }
 
             return back()->with('success', 'Donation recorded successfully!');
         } catch (\Exception $e) {
-            // dd($e->getMessage());
             \Log::error('Error creating donation: ' . $e->getMessage());
             return back()->withErrors(['general' => 'An error occurred while recording the donation.']);
         }
@@ -203,8 +329,20 @@ class DonationController extends Controller
      */
     public function show(Donation $donation)
     {
-        //
-        return $donation;
+         return Inertia::render('Donations/Show', [
+        'donation' => $donation->load([
+            'donor.bloodGroup',
+            'bloodCenter',
+            'bloodGroup',
+            'appointments',
+            'blood_request_item.bloodGroup',
+            'blood_request_item.recipient.bloodGroup',
+            'blood_request_item.recipient.hospital',
+            'blood_request_item.request'
+        ]),
+        'canEdit' => auth()->user()->can('update', $donation),
+        'canDelete' => auth()->user()->can('delete', $donation),
+    ]);
     }
 
     /**
@@ -212,7 +350,14 @@ class DonationController extends Controller
      */
     public function edit(Donation $donation)
     {
-        return $donation;
+        return Inertia::render('Donations/Edit', [
+            'donation' => $donation->load(['donor.bloodGroup', 'bloodCenter', 'bloodGroup', 'appointments', 'blood_request_item']),
+            'donors' => User::with('bloodGroup')->get(),
+            'bloodCenters' => BloodCenter::all(),
+            'bloodGroups' => BloodGroup::all(),
+            'appointments' => Appointment::with(['user', 'blood_center'])->get(),
+            'bloodRequests' => BloodRequestItem::all(),
+        ]);
     }
 
     /**
@@ -220,8 +365,41 @@ class DonationController extends Controller
      */
     public function update(UpdateDonationRequest $request, Donation $donation)
     {
-        $donation->update($request->validated());
-        return $donation;
+        $validated = $request->validated();
+    
+    try {
+        $donation->update($validated);
+        
+        // Handle appointment status updates if changed
+        if ($validated['appointment_id'] && $validated['appointment_id'] != $donation->appointment_id) {
+            $appointment = Appointment::find($validated['appointment_id']);
+            if ($appointment) {
+                $appointment->update(['status' => 'accepted']);
+            }
+        }
+        
+        // Handle blood request updates if screening status changed
+        if ($validated['blood_request_item_id'] && $validated['screening_status'] === 'passed') {
+             // Update blood request item if linked and screening passed
+            if ($validated['blood_request_item_id'] && $validated['screening_status'] === 'passed') {
+                $bloodRequestItem = BloodRequestItem::find($validated['blood_request_item_id']);
+                if ($bloodRequestItem) {
+                    $volumeInUnits = $validated['volume_ml'];
+                    $bloodRequestItem->increment('units_fulfilled', $volumeInUnits);
+
+
+                    if ($bloodRequestItem->units_requested >= $bloodRequestItem->units_fulfilled) {
+                        $bloodRequestItem->update(['status' => 'fulfilled']);
+                    }
+                }
+            }
+        }
+        
+        return back()->with('success', 'Donation updated successfully!');
+    } catch (\Exception $e) {
+        \Log::error('Error updating donation: ' . $e->getMessage());
+        return back()->withErrors(['general' => 'An error occurred while updating the donation.']);
+    }
     }
 
     /**

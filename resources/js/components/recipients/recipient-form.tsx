@@ -27,9 +27,10 @@ export interface RecipientFormProps {
     onChange: <K extends keyof RecipientFormData>(field: K, value: RecipientFormData[K]) => void;
     bloodGroups: { id: string; name: string }[];
     hospitals: {id: string; name: string}[];
+    hospital_id?: string;
 }
 
-export default function RecipientForm({ data, onChange, bloodGroups, hospitals }: RecipientFormProps) {
+export default function RecipientForm({ data, onChange, bloodGroups, hospitals,hospital_id }: RecipientFormProps) {
     return (
         <div className="space-y-4">
             <Grid>
@@ -77,7 +78,8 @@ export default function RecipientForm({ data, onChange, bloodGroups, hospitals }
                 <Grid.Col span={6}>
                     <Select
                         label="Hospital"
-                        value={data.hospital_id}
+                        value={data?.hospital_id}
+                        defaultValue={hospital_id}
                         onChange={(val) => onChange('hospital_id', val || '')}
                         data={hospitals?.map((h) => ({ value: h.id?.toString(), label: h.name }))}
                         required

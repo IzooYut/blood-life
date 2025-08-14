@@ -1,12 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button, Badge, Table, ActionIcon, Group, Text, TextInput, Select, Pagination, Stack, Grid } from '@mantine/core';
-// import { IconEye, IconPlus, IconCalendar, IconBuilding, IconDroplet, IconSearch, IconFilter } from '@tabler/icons-react';
+import { Button, Badge, Table, ActionIcon, Group, Text, TextInput, Select, Pagination, Stack, Grid, Title, Modal, Alert } from '@mantine/core';
 import { BreadcrumbItem } from '@/types';
 import { useState, useEffect } from 'react';
-import { useDebouncedValue } from '@mantine/hooks';
-import { BuildingIcon, CalendarIcon, DropletIcon, EyeIcon, FilterIcon, PlusIcon, PlusSquareIcon, SearchIcon } from 'lucide-react';
+import { useDebouncedValue, useDisclosure } from '@mantine/hooks';
+import { BuildingIcon, CalendarIcon, DownloadIcon, DropletIcon, EyeIcon, FilterIcon, Loader, PlusIcon, PlusSquareIcon, SearchIcon, EditIcon, TrashIcon, AlertTriangleIcon } from 'lucide-react';
+import { notifications } from '@mantine/notifications';
 
 interface BloodRequestItem {
     id: string;
@@ -100,20 +100,31 @@ export default function Index({ bloodRequests, filters, filterOptions }: IndexBl
     const [urgencyFilter, setUrgencyFilter] = useState(filters.urgency || '');
     const [sortBy, setSortBy] = useState(filters.sort_by || 'request_date');
     const [sortDirection, setSortDirection] = useState(filters.sort_direction || 'desc');
-    
+
     const [debouncedSearch] = useDebouncedValue(searchValue, 300);
+
+    const [isExporting, setIsExporting] = useState<'pdf' | 'excel' | null>(null);
+    
+    // Delete modal state
+    const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
+    const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    // View modal state
+    const [viewModalOpened, { open: openViewModal, close: closeViewModal }] = useDisclosure(false);
+    const [selectedRequest, setSelectedRequest] = useState<BloodRequest | null>(null);
 
     // Handle search and filter changes
     useEffect(() => {
         const params = new URLSearchParams();
-        
+
         if (debouncedSearch) params.set('search', debouncedSearch);
         if (statusFilter) params.set('status', statusFilter);
         if (hospitalFilter) params.set('hospital_id', hospitalFilter);
         if (urgencyFilter) params.set('urgency', urgencyFilter);
         if (sortBy) params.set('sort_by', sortBy);
         if (sortDirection) params.set('sort_direction', sortDirection);
-        
+
         router.get('/blood-requests', Object.fromEntries(params), {
             preserveState: true,
             preserveScroll: true,
@@ -142,6 +153,7 @@ export default function Index({ bloodRequests, filters, filterOptions }: IndexBl
         if (sortBy !== field) return '';
         return sortDirection === 'asc' ? ' ↑' : ' ↓';
     };
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Blood Requests',
@@ -149,20 +161,216 @@ export default function Index({ bloodRequests, filters, filterOptions }: IndexBl
         },
     ];
 
+    const handleExport = (format: 'pdf' | 'excel') => {
+        setIsExporting(format);
+
+        const rawParams: Record<string, string | undefined> = {
+            start_date: undefined,
+            end_date: undefined,
+            search: debouncedSearch || undefined,
+        };
+
+        const params: Record<string, string> = Object.fromEntries(
+            Object.entries(rawParams).filter(([_, v]) => v !== undefined) as [string, string][]
+        );
+
+        const queryString = new URLSearchParams(params).toString();
+        const url = route('reports.export', { type: 'requests', format: format }) + '?' + queryString;
+
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.setAttribute('download', '');
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+
+        setTimeout(() => setIsExporting(null), 2000);
+    };
+
+    // Handle view request
+    const handleViewRequest = (request: BloodRequest) => {
+        setSelectedRequest(request);
+        openViewModal();
+    };
+
+    // Handle delete request
+    const handleDeleteClick = (requestId: string) => {
+        setSelectedRequestId(requestId);
+        openDeleteModal();
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!selectedRequestId) return;
+
+        setIsDeleting(true);
+        
+        try {
+            router.delete(`/blood-requests/${selectedRequestId}`, {
+                onSuccess: () => {
+                    notifications.show({
+                        title: 'Success',
+                        message: 'Blood request deleted successfully',
+                        color: 'green',
+                    });
+                    closeDeleteModal();
+                    setSelectedRequestId(null);
+                },
+                onError: () => {
+                    notifications.show({
+                        title: 'Error',
+                        message: 'Failed to delete blood request',
+                        color: 'red',
+                    });
+                },
+                onFinish: () => {
+                    setIsDeleting(false);
+                }
+            });
+        } catch (error) {
+            notifications.show({
+                title: 'Error',
+                message: 'An unexpected error occurred',
+                color: 'red',
+            });
+            setIsDeleting(false);
+        }
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Blood Requests" />
 
+            {/* Delete Confirmation Modal */}
+            <Modal opened={deleteModalOpened} onClose={closeDeleteModal} title="Confirm Deletion" centered>
+                <Alert icon={<AlertTriangleIcon size={16} />} color="red" mb="md">
+                    <Text size="sm">
+                        Are you sure you want to delete this blood request? This action cannot be undone.
+                    </Text>
+                </Alert>
+                
+                <Group justify="flex-end" mt="md">
+                    <Button variant="outline" onClick={closeDeleteModal}>
+                        Cancel
+                    </Button>
+                    <Button 
+                        color="red" 
+                        onClick={handleConfirmDelete}
+                        loading={isDeleting}
+                    >
+                        Delete Request
+                    </Button>
+                </Group>
+            </Modal>
+
+            {/* View Request Modal */}
+            <Modal 
+                opened={viewModalOpened} 
+                onClose={closeViewModal} 
+                title="Blood Request Details" 
+                size="lg"
+                centered
+            >
+                {selectedRequest && (
+                    <Stack gap="md">
+                        <Grid>
+                            <Grid.Col span={6}>
+                                <Text size="sm" fw={500} c="dimmed">Hospital</Text>
+                                <Text>{selectedRequest.hospital.name}</Text>
+                            </Grid.Col>
+                            <Grid.Col span={6}>
+                                <Text size="sm" fw={500} c="dimmed">Request Date</Text>
+                                <Text>{new Date(selectedRequest.request_date).toLocaleDateString()}</Text>
+                            </Grid.Col>
+                            <Grid.Col span={6}>
+                                <Text size="sm" fw={500} c="dimmed">Status</Text>
+                                <Badge color={getStatusColor(selectedRequest.status)}>
+                                    {selectedRequest.status.toUpperCase()}
+                                </Badge>
+                            </Grid.Col>
+                            <Grid.Col span={6}>
+                                <Text size="sm" fw={500} c="dimmed">Total Items</Text>
+                                <Text>{selectedRequest.items.length}</Text>
+                            </Grid.Col>
+                        </Grid>
+
+                        {selectedRequest.notes && (
+                            <div>
+                                <Text size="sm" fw={500} c="dimmed">Notes</Text>
+                                <Text size="sm">{selectedRequest.notes}</Text>
+                            </div>
+                        )}
+
+                        <div>
+                            <Text size="sm" fw={500} c="dimmed" mb="xs">Blood Items</Text>
+                            <Table striped>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Blood Group</Table.Th>
+                                        <Table.Th>Units</Table.Th>
+                                        <Table.Th>Urgency</Table.Th>
+                                        <Table.Th>Status</Table.Th>
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {selectedRequest.items.map((item, index) => (
+                                        <Table.Tr key={index}>
+                                            <Table.Td>{item.blood_group.name}</Table.Td>
+                                            <Table.Td>{item.units_requested}</Table.Td>
+                                            <Table.Td>
+                                                <Badge size="sm" color={getUrgencyColor(item.urgency)}>
+                                                    {item.urgency.toUpperCase()}
+                                                </Badge>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Badge size="sm" color={getStatusColor(item.status)}>
+                                                    {item.status.toUpperCase()}
+                                                </Badge>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    ))}
+                                </Table.Tbody>
+                            </Table>
+                        </div>
+                    </Stack>
+                )}
+            </Modal>
+
             <Card>
                 <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle>Blood Requests</CardTitle>
-                        <Link href="/blood-requests/create">
-                            <Button leftSection={<PlusSquareIcon size={16} />}>
-                                New Request
+                    <Group justify="space-between" className="flex-wrap pb-2 gap-4">
+                        <div>
+                            <Title order={2} className="text-[1.5rem] sm:text-[1.75rem] font-bold text-[#0B0146]">Blood Requests List</Title>
+                            <Text size="sm" className="text-gray-500">Manage and view all registered Blood Requests</Text>
+                        </div>
+                        <Group gap="xs" className="flex-wrap justify-end">
+                            <Link href="/blood-requests/create">
+                                <Button leftSection={<PlusSquareIcon size={16} />}>
+                                    New Request
+                                </Button>
+                            </Link>
+                            <Button
+                                variant="outline"
+                                color="gray"
+                                leftSection={isExporting === 'excel' ? <Loader size={14} /> : <DownloadIcon size={16} />}
+                                radius="md"
+                                loading={isExporting === 'excel'}
+                                onClick={() => handleExport('excel')}
+                            >
+                                Export Excel
                             </Button>
-                        </Link>
-                    </div>
+
+                            <Button
+                                variant="filled"
+                                color="orange"
+                                leftSection={isExporting === 'pdf' ? <Loader size={14} color="white" /> : <DownloadIcon size={16} />}
+                                radius="md"
+                                loading={isExporting === 'pdf'}
+                                onClick={() => handleExport('pdf')}
+                            >
+                                Export PDF
+                            </Button>
+                        </Group>
+                    </Group>
                 </CardHeader>
                 <CardContent>
                     <Card>
@@ -177,7 +385,7 @@ export default function Index({ bloodRequests, filters, filterOptions }: IndexBl
                                         Clear All
                                     </Button>
                                 </Group>
-                                
+
                                 <Grid>
                                     <Grid.Col span={3}>
                                         <TextInput
@@ -222,13 +430,13 @@ export default function Index({ bloodRequests, filters, filterOptions }: IndexBl
                     <Table striped highlightOnHover>
                         <Table.Thead>
                             <Table.Tr>
-                                <Table.Th 
+                                <Table.Th
                                     style={{ cursor: 'pointer' }}
                                     onClick={() => handleSort('hospital_name')}
                                 >
                                     Hospital{getSortIcon('hospital_name')}
                                 </Table.Th>
-                                <Table.Th 
+                                <Table.Th
                                     style={{ cursor: 'pointer' }}
                                     onClick={() => handleSort('request_date')}
                                 >
@@ -237,7 +445,7 @@ export default function Index({ bloodRequests, filters, filterOptions }: IndexBl
                                 <Table.Th>Items Count</Table.Th>
                                 <Table.Th>Blood Groups</Table.Th>
                                 <Table.Th>Total Units</Table.Th>
-                                <Table.Th 
+                                <Table.Th
                                     style={{ cursor: 'pointer' }}
                                     onClick={() => handleSort('status')}
                                 >
@@ -248,10 +456,10 @@ export default function Index({ bloodRequests, filters, filterOptions }: IndexBl
                         </Table.Thead>
                         <Table.Tbody>
                             {bloodRequests.data.map((request) => {
-                                const totalUnits = request.items.reduce((sum, item) => sum + item.units_requested, 0);
+                                const totalUnits = request.items.reduce((sum, item) => sum + Number(item?.units_requested ?? 0), 0);
                                 const bloodGroups = [...new Set(request.items.map(item => item.blood_group.name))];
                                 const hasUrgentItems = request.items.some(item => item.urgency === 'urgent');
-                                
+
                                 return (
                                     <Table.Tr key={request.id}>
                                         <Table.Td>
@@ -302,11 +510,32 @@ export default function Index({ bloodRequests, filters, filterOptions }: IndexBl
                                         </Table.Td>
                                         <Table.Td>
                                             <Group gap="xs">
+                                                {/* <ActionIcon 
+                                                    variant="light" 
+                                                    size="sm"
+                                                    onClick={() => handleViewRequest(request)}
+                                                    color="blue"
+                                                >
+                                                    <EyeIcon size={16} />
+                                                </ActionIcon> */}
                                                 <Link href={`/blood-requests/${request.id}`}>
                                                     <ActionIcon variant="light" size="sm">
                                                         <EyeIcon size={16} />
                                                     </ActionIcon>
                                                 </Link>
+                                                <Link href={`/blood-requests/${request.id}/edit`}>
+                                                    <ActionIcon variant="light" size="sm" color="orange">
+                                                        <EditIcon size={16} />
+                                                    </ActionIcon>
+                                                </Link>
+                                                <ActionIcon 
+                                                    variant="light" 
+                                                    size="sm" 
+                                                    color="red"
+                                                    onClick={() => handleDeleteClick(request.id)}
+                                                >
+                                                    <TrashIcon size={16} />
+                                                </ActionIcon>
                                             </Group>
                                         </Table.Td>
                                     </Table.Tr>
@@ -342,7 +571,7 @@ export default function Index({ bloodRequests, filters, filterOptions }: IndexBl
                                 No blood requests found
                             </Text>
                             <Text size="sm" c="dimmed" mt="xs">
-                                {searchValue || statusFilter || hospitalFilter || urgencyFilter 
+                                {searchValue || statusFilter || hospitalFilter || urgencyFilter
                                     ? 'Try adjusting your filters or search criteria'
                                     : 'Create your first blood request to get started'
                                 }
@@ -354,8 +583,6 @@ export default function Index({ bloodRequests, filters, filterOptions }: IndexBl
                             </Link>
                         </div>
                     )}
-
-                    {/* Pagination can be added here if needed */}
                 </CardContent>
             </Card>
         </AppLayout>

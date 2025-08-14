@@ -14,6 +14,7 @@ import {
     Shield,
     Award,
     CheckCircle,
+    AlertCircle,
 } from 'lucide-react';
 
 interface BloodGroup {
@@ -39,13 +40,10 @@ const MobileMenu: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen
                     </button>
                 </div>
                 <nav className="p-4 space-y-4">
-                    <a href="#" className="block text-gray-700 hover:text-red-600 transition-colors py-2">Home</a>
-                    <a href="#" className="block text-gray-700 hover:text-red-600 transition-colors py-2">About</a>
-                    <a href="#" className="block text-gray-700 hover:text-red-600 transition-colors py-2">Donate</a>
-                    <a href="#" className="block text-gray-700 hover:text-red-600 transition-colors py-2">Contact</a>
+                    <a href={route('home')} className="block text-gray-700 hover:text-red-600 transition-colors py-2">Home</a>
                     <div className="pt-4 border-t border-gray-200 space-y-2">
-                        <a href="#" className="block text-gray-700 hover:text-red-600 transition-colors py-2">Login</a>
-                        <a href="#" className="block bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors text-center">Register</a>
+                        <a href={route('login')}  className="block text-gray-700 hover:text-red-600 transition-colors py-2">Login</a>
+                        <a href={route('register-donor')}  className="block bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors text-center">Register</a>
                     </div>
                 </nav>
             </div>
@@ -68,15 +66,13 @@ const Header: React.FC = () => {
                     </div>
 
                     <nav className="hidden lg:flex space-x-8">
-                        <a href="#" className="text-gray-700 hover:text-red-600 transition-colors">Home</a>
-                        <a href="#" className="text-gray-700 hover:text-red-600 transition-colors">About</a>
-                        <a href="#" className="text-gray-700 hover:text-red-600 transition-colors">Donate</a>
-                        <a href="#" className="text-gray-700 hover:text-red-600 transition-colors">Contact</a>
+                        <a href={route('home')} className="text-gray-700 hover:text-red-600 transition-colors">Home</a>
+                      
                     </nav>
 
                     <div className="hidden sm:flex items-center space-x-3 lg:space-x-4">
-                        <a href="#" className="text-gray-700 hover:text-red-600 transition-colors font-medium text-sm lg:text-base">Login</a>
-                        <a href="#" className="bg-red-500 text-white px-3 py-1.5 lg:px-4 lg:py-2 rounded-lg hover:bg-red-600 transition-colors font-medium text-sm lg:text-base">Register</a>
+                        <a href={route('login')} className="text-gray-700 hover:text-red-600 transition-colors font-medium text-sm lg:text-base">Login</a>
+                        <a href={route('register-donor')} className="bg-red-500 text-white px-3 py-1.5 lg:px-4 lg:py-2 rounded-lg hover:bg-red-600 transition-colors font-medium text-sm lg:text-base">Register</a>
                     </div>
 
                     <button
@@ -176,9 +172,65 @@ const DonorRegistrationForm: React.FC<{ bloodGroups: BloodGroup[] }> = ({ bloodG
     });
 
     const [showSuccess, setShowSuccess] = useState(false);
+    const [ageValidation, setAgeValidation] = useState({ isValid: true, message: '', age: null });
+
+    // Function to calculate age and validate eligibility
+    const calculateAge = (birthDate: string) => {
+        if (!birthDate) return null;
+        
+        const today = new Date();
+        const birth = new Date(birthDate);
+        let age = today.getFullYear() - birth.getFullYear();
+        const monthDiff = today.getMonth() - birth.getMonth();
+        
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+            age--;
+        }
+        
+        return age;
+    };
+
+    const validateAge = (birthDate: string) => {
+        const age = calculateAge(birthDate);
+        
+        if (age === null) {
+            setAgeValidation({ isValid: true, message: '', age: null });
+            return;
+        }
+
+        if (age < 16) {
+            setAgeValidation({ 
+                isValid: false, 
+                message: `You must be at least 16 years old to donate blood. You are currently ${age} years old.`,
+                age: age
+            });
+        } else if (age > 65) {
+            setAgeValidation({ 
+                isValid: false, 
+                message: `For safety reasons, blood donation is typically limited to donors under 65 years old. You are currently ${age} years old. Please consult with medical staff for eligibility.`,
+                age: age 
+            });
+        } else {
+            setAgeValidation({ 
+                isValid: true, 
+                message: `Great! At ${age} years old, you meet the age requirements for blood donation.`,
+                age: age
+            });
+        }
+    };
+
+    const handleDateChange = (dateString: string) => {
+        setData('dob', dateString);
+        validateAge(dateString);
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (!ageValidation.isValid && ageValidation.age !== null) {
+            return; 
+        }
+        
         post('/create-donor', {
             onSuccess: () => {
                 setShowSuccess(true);
@@ -195,7 +247,7 @@ const DonorRegistrationForm: React.FC<{ bloodGroups: BloodGroup[] }> = ({ bloodG
 
     return (
         <div className="bg-white py-8 sm:py-12 lg:py-16">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-8 sm:mb-12">
                     <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                         <UserPlus className="w-8 h-8 text-red-500" />
@@ -216,6 +268,17 @@ const DonorRegistrationForm: React.FC<{ bloodGroups: BloodGroup[] }> = ({ bloodG
                         </p>
                     </div>
                 )}
+
+                {/* Age Eligibility Information */}
+                <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start space-x-3">
+                        <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-blue-800">
+                            <p className="font-medium mb-1">Age Eligibility Requirements:</p>
+                            <p>Blood donors must be between 16 and 65 years old. This ensures donor safety and blood quality standards.</p>
+                        </div>
+                    </div>
+                </div>
 
                 <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 sm:p-8 lg:p-10">
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -286,13 +349,35 @@ const DonorRegistrationForm: React.FC<{ bloodGroups: BloodGroup[] }> = ({ bloodG
                                 <input
                                     type="date"
                                     value={formatDate(data.dob)}
-                                    onChange={(e) => setData('dob', e.target.value)}
-                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors ${errors.dob ? 'border-red-300' : 'border-gray-300'
-                                        }`}
+                                    onChange={(e) => handleDateChange(e.target.value)}
+                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors ${
+                                        errors.dob || !ageValidation.isValid ? 'border-red-300' : 'border-gray-300'
+                                    }`}
+                                    max={new Date().toISOString().split('T')[0]} // Prevent future dates
                                     required
                                 />
                                 {errors.dob && (
                                     <p className="mt-1 text-sm text-red-600">{errors.dob}</p>
+                                )}
+                                
+                                {/* Age validation message */}
+                                {ageValidation.message && (
+                                    <div className={`mt-2 p-3 rounded-lg flex items-start space-x-2 ${
+                                        ageValidation.isValid 
+                                            ? 'bg-green-50 border border-green-200' 
+                                            : 'bg-red-50 border border-red-200'
+                                    }`}>
+                                        {ageValidation.isValid ? (
+                                            <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                                        ) : (
+                                            <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                                        )}
+                                        <p className={`text-sm font-medium ${
+                                            ageValidation.isValid ? 'text-green-800' : 'text-red-800'
+                                        }`}>
+                                            {ageValidation.message}
+                                        </p>
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -334,6 +419,7 @@ const DonorRegistrationForm: React.FC<{ bloodGroups: BloodGroup[] }> = ({ bloodG
                                 )}
                             </div>
                         </div>
+                        
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -343,7 +429,7 @@ const DonorRegistrationForm: React.FC<{ bloodGroups: BloodGroup[] }> = ({ bloodG
                                     type="password"
                                     value={data.password}
                                     onChange={(e) => setData('password', e.target.value)}
-                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors ${errors.phone ? 'border-red-300' : 'border-gray-300'
+                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors ${errors.password ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                     placeholder="••••••••"
                                     required
@@ -355,18 +441,18 @@ const DonorRegistrationForm: React.FC<{ bloodGroups: BloodGroup[] }> = ({ bloodG
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Confirm Password<span className="text-red-500">*</span>
+                                    Confirm Password <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="password"
                                     value={data.password_confirmation}
                                     onChange={(e) => setData('password_confirmation', e.target.value)}
-                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors ${errors.email ? 'border-red-300' : 'border-gray-300'
+                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors ${errors.password_confirmation ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                     placeholder="••••••••"
                                     required
                                 />
-                                {errors.email && (
+                                {errors.password_confirmation && (
                                     <p className="mt-1 text-sm text-red-600">{errors.password_confirmation}</p>
                                 )}
                             </div>
@@ -397,15 +483,20 @@ const DonorRegistrationForm: React.FC<{ bloodGroups: BloodGroup[] }> = ({ bloodG
                         <div className="pt-4">
                             <button
                                 type="submit"
-                                disabled={processing}
-                                className={`w-full bg-red-500 text-white py-3 px-6 rounded-lg font-medium text-lg hover:bg-red-600 transition-colors ${processing ? 'opacity-50 cursor-not-allowed' : ''
-                                    }`}
+                                disabled={processing || (!ageValidation.isValid && ageValidation.age !== null)}
+                                className={`w-full py-3 px-6 rounded-lg font-medium text-lg transition-colors ${
+                                    processing || (!ageValidation.isValid && ageValidation.age !== null)
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                                        : 'bg-red-500 text-white hover:bg-red-600'
+                                }`}
                             >
                                 {processing ? (
                                     <div className="flex items-center justify-center space-x-2">
                                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                         <span>Registering...</span>
                                     </div>
+                                ) : (!ageValidation.isValid && ageValidation.age !== null) ? (
+                                    'Age Requirements Not Met'
                                 ) : (
                                     'Register as Donor'
                                 )}
@@ -423,8 +514,6 @@ const RegisterDonor: React.FC<Props> = ({ bloodGroups }) => {
         <div className="min-h-screen bg-gray-50">
             <Head title="Blood Donation - Register as Donor" />
             <Header />
-            {/* <Banner /> */}
-            {/* <WhyDonateSection /> */}
             <DonorRegistrationForm bloodGroups={bloodGroups} />
 
             <footer className="bg-gray-800 text-white py-8 mt-12">

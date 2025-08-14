@@ -112,20 +112,32 @@ export default function Index() {
         });
     };
 
-    const handleExport = (type: 'pdf' | 'excel') => {
-        setIsExporting(type);
-        const url = route(`appointments.export.${type}`, queryParams());
+     const handleExport = (format: 'pdf' | 'excel') => {
+    setIsExporting(format);
 
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.setAttribute('download', '');
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-
-        setTimeout(() => setIsExporting(null), 2000);
+    const rawParams: Record<string, string | undefined> = {
+      start_date: undefined,
+      end_date: undefined,
+      // search: debouncedSearch || undefined,
     };
 
+    const params: Record<string, string> = Object.fromEntries(
+      Object.entries(rawParams).filter(([_, v]) => v !== undefined) as [string, string][]
+    );
+
+    const queryString = new URLSearchParams(params).toString();
+
+    const url = route('reports.export', { type: 'appointments', format: format }) + '?' + queryString;
+
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.setAttribute('download', '');
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+
+    setTimeout(() => setIsExporting(null), 2000);
+  };
 
 
     const handleConfirmDelete = () => {

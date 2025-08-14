@@ -31,7 +31,7 @@ class BloodRequestItemController extends Controller
             ->with([
                 'hospital:id,name,address,contact_person,phone,email',
                 'items' => function ($query) {
-                    $query->select('id', 'blood_request_id', 'blood_group_id', 'recipient_id', 'units_requested', 'urgency', 'status')
+                    $query->select('id', 'blood_request_id', 'blood_group_id', 'recipient_id', 'units_requested', 'urgency', 'status','unique_code')
                         ->with(['bloodGroup:id,name', 'recipient:id,name']);
                 }
             ])
@@ -42,6 +42,9 @@ class BloodRequestItemController extends Controller
             $query->whereHas('hospital', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('contact_person', 'like', "%{$search}%");
+            });
+            $query->whereHas('items', function ($q) use ($search) {
+                $q->where('unique_code', 'like', "%{$search}%");
             });
         }
 
@@ -84,6 +87,7 @@ class BloodRequestItemController extends Controller
                         'recipient_name' => $item?->recipient?->name ?? 'Hospital Request',
                         'bloodGroup' => $item->bloodGroup->name ?? '-',
                         'urgency' => $item->urgency,
+                        'unique_code' => $item?->unique_code ?? '-',
                         'location' => $request?->hospital?->location ?? '-',
                         'address' => $request?->hospital?->address ?? '-',
                         'phone' => $request->hospital->phone,

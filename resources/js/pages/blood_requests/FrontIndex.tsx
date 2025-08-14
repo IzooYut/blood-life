@@ -36,6 +36,7 @@ interface BloodRequestItem {
     hospital_name: string;
     recipient_name: string;
     bloodGroup: string;
+    unique_code:string;
     urgency: 'urgent' | 'normal' | 'low';
     location: string;
     address: string;
@@ -458,6 +459,12 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, filterOp
                                             Blood Group: {appointment.bloodGroup} ({appointment.unitsRequested} units)
                                         </span>
                                     </div>
+                                     <div className="flex items-center space-x-2 text-sm text-gray-600">
+                                        <Droplets className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                        <span className="font-medium">
+                                            code: {appointment.unique_code ?? '-'} 
+                                        </span>
+                                    </div>
                                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                                         <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0" />
                                         <span className="truncate">{appointment.hospital_name}</span>
@@ -477,6 +484,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, filterOp
                             <div className="self-start">
                                 <UrgencyBadge urgency={appointment.urgency} />
                             </div>
+                            
                         </div>
 
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -603,7 +611,7 @@ const Filters: React.FC<FiltersProps> = ({ filters, filterOptions, onFilterChang
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
                                 type="text"
-                                placeholder="Search hospital or contact..."
+                                placeholder="Search unique code ,hospital or contact..."
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                                 value={filters.search || ''}
                                 onChange={(e) => handleFilterChange('search', e.target.value)}
